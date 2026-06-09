@@ -50,21 +50,35 @@ DISCORD_TOKEN = load_token()
 # Modo preview: mostra a letra no terminal sem tocar no Discord.
 PREVIEW = False
 
+# True so quando ha um terminal real. Fica False ao rodar via pythonw
+# (escondido) ou com a saida redirecionada -> evita lixo no terminal e o
+# "flash" de janela do cls no boot. As atualizacoes do Discord continuam.
+try:
+    INTERACTIVE = bool(sys.stdout) and sys.stdout.isatty()
+except Exception:
+    INTERACTIVE = False
+
 
 # ---------------------------------------------------------------------------
 # Terminal helpers
 # ---------------------------------------------------------------------------
 def hide_cursor():
+    if not INTERACTIVE:
+        return
     sys.stdout.write("\033[?25l")
     sys.stdout.flush()
 
 
 def show_cursor():
+    if not INTERACTIVE:
+        return
     sys.stdout.write("\033[?25h")
     sys.stdout.flush()
 
 
 def clear_line_area():
+    if not INTERACTIVE:
+        return
     sys.stdout.write("\033[H\033[J")
     sys.stdout.flush()
 
@@ -189,6 +203,9 @@ async def get_media_info():
 
 
 def render(song, artist, pos, lyric):
+    if not INTERACTIVE:
+        return
+
     m, s = divmod(int(pos), 60)
 
     if PREVIEW:
@@ -210,10 +227,10 @@ async def main_loop():
 
     update_discord_status(None)
 
-    os.system("cls" if os.name == "nt" else "clear")
-    hide_cursor()
-
-    print("Detectando musica...")
+    if INTERACTIVE:
+        os.system("cls" if os.name == "nt" else "clear")
+        hide_cursor()
+        print("Detectando musica...")
 
     try:
         while True:

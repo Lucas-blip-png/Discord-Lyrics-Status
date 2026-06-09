@@ -1,0 +1,7 @@
+# Normaliza finais de linha. Scripts do Windows precisam de CRLF.
+* text=auto eol=lf
+*.bat text eol=crlf
+*.cmd text eol=crlf
+*.ps1 text eol=crlf
+*.vbs text eol=crlf
+*.py  text eol=lf
