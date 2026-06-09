@@ -1,0 +1,9 @@
+# NUNCA suba seu token
+token.txt
+.env
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
