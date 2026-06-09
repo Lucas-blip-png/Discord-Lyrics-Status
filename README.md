@@ -6,6 +6,15 @@ Quando você pausa a música, o status some sozinho.
 
 Foi feito pra ser **fácil**: a maior parte é só dar **dois cliques** em arquivos `.bat`.
 
+## 🎬 Como fica
+
+![Preview: o painel no terminal e o status no Discord](preview.svg)
+
+> 💡 **Quer pôr um GIF/print seu de verdade?** Grave a tela (use `Win + Shift + S`
+> para print, ou o Xbox Game Bar com `Win + G` para gravar), salve o arquivo como
+> `demo.gif` (ou `demo.png`) **na pasta do projeto** e troque a linha de imagem
+> acima por `![demo](demo.gif)`. Depois é só commitar.
+
 ---
 
 ## ⚠️ LEIA ISTO PRIMEIRO (importante)
@@ -176,6 +185,13 @@ Não. Só no **Windows**, porque usa as APIs de mídia do Windows.
 **Preciso deixar algo aberto?**
 O programa precisa estar rodando (em segundo plano) pra atualizar o status.
 Com o autostart, ele cuida disso sozinho enquanto o PC estiver ligado.
+
+---
+
+## 📄 Licença
+
+Distribuído sob a licença **MIT** — veja o arquivo [LICENSE](LICENSE).
+Pode usar, modificar e compartilhar à vontade.
 
 ---
 

@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="760" height="500" viewBox="0 0 760 500" font-family="Consolas, 'Courier New', monospace">
+  <!-- fundo -->
+  <rect width="760" height="500" rx="16" fill="#0f0f17"/>
+
+  <!-- ===== Janela do terminal ===== -->
+  <rect x="24" y="24" width="712" height="280" rx="12" fill="#1e1e2e" stroke="#313244" stroke-width="1.5"/>
+  <!-- barra de titulo -->
+  <circle cx="50" cy="50" r="6.5" fill="#f38ba8"/>
+  <circle cx="72" cy="50" r="6.5" fill="#f9e2af"/>
+  <circle cx="94" cy="50" r="6.5" fill="#a6e3a1"/>
+  <text x="380" y="55" text-anchor="middle" fill="#9399b2" font-size="14">Discord Lyrics Status</text>
+  <line x1="24" y1="74" x2="736" y2="74" stroke="#313244" stroke-width="1.5"/>
+
+  <!-- conteudo do terminal -->
+  <text font-size="22" xml:space="preserve">
+    <tspan x="52" y="124" fill="#89b4fa">Song   : </tspan><tspan fill="#cdd6f4">Blinding Lights</tspan>
+    <tspan x="52" y="166" fill="#89b4fa">Artist : </tspan><tspan fill="#cdd6f4">The Weeknd</tspan>
+    <tspan x="52" y="208" fill="#89b4fa">Time   : </tspan><tspan fill="#cdd6f4">01:23</tspan>
+    <tspan x="52" y="250" fill="#89b4fa">Lyrics : </tspan><tspan fill="#a6e3a1">&#127925; I'm blinded by the lights</tspan>
+  </text>
+  <rect x="412" y="234" width="11" height="22" fill="#a6e3a1">
+    <animate attributeName="opacity" values="1;0;1" dur="1.1s" repeatCount="indefinite"/>
+  </rect>
+
+  <!-- seta -->
+  <text x="380" y="346" text-anchor="middle" fill="#6c7086" font-size="15" font-family="'Segoe UI', sans-serif">e o mesmo texto vira o seu status no Discord &#8595;</text>
+
+  <!-- ===== Cartao do Discord ===== -->
+  <rect x="24" y="364" width="712" height="112" rx="12" fill="#2b2d31"/>
+  <!-- avatar -->
+  <circle cx="80" cy="420" r="30" fill="#5865f2"/>
+  <text x="80" y="429" text-anchor="middle" fill="#ffffff" font-size="26" font-family="'Segoe UI', sans-serif" font-weight="700">L</text>
+  <!-- bolinha online -->
+  <circle cx="100" cy="440" r="9" fill="#2b2d31"/>
+  <circle cx="100" cy="440" r="6" fill="#23a55a"/>
+  <!-- nome + status -->
+  <text x="130" y="414" fill="#ffffff" font-size="19" font-family="'Segoe UI', sans-serif" font-weight="600">voce</text>
+  <text x="130" y="442" fill="#b5bac1" font-size="16" font-family="'Segoe UI', sans-serif">&#127925; I'm blinded by the lights</text>
+</svg>
