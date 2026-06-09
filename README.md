@@ -121,6 +121,20 @@ Você tem duas opções:
 - **Abrir só quando quiser:** rode `python lyrics.py` (ou use `testar.bat` tirando
   o `--preview`).
 
+### Ajustar a frequência de atualização (opcional)
+
+Por segurança, o status é atualizado **no máximo 1 vez a cada 5 segundos** — assim
+faz menos requisições e fica menos "cara de bot". Dá pra mudar com `--interval`:
+
+```bash
+python lyrics.py --interval 8    # no maximo a cada 8s (mais seguro)
+python lyrics.py --interval 3    # mais rapido, porem mais requisicoes
+```
+
+> Quanto **maior** o número, **menos** requisições ao Discord (menor risco de
+> detecção), mas a letra acompanha com um pouquinho mais de atraso. O início
+> automático usa o padrão de 5s.
+
 ---
 
 ## 🛑 Como controlar

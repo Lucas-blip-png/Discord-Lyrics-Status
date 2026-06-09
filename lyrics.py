@@ -220,10 +220,15 @@ def render(song, artist, pos, lyric):
 # ---------------------------------------------------------------------------
 # Main loop
 # ---------------------------------------------------------------------------
-async def main_loop():
+async def main_loop(min_interval):
     current_song = None
     current_lyrics = []
-    current_line = None
+    current_line = None      # ultima linha mostrada no terminal
+
+    desired_text = None      # status que queremos no Discord
+    sent_text = None         # ultimo status realmente enviado
+    last_sent = 0.0          # time.monotonic() do ultimo envio
+    send_task = None         # envio em andamento (para nao sobrepor)
 
     update_discord_status(None)
 
@@ -236,50 +241,55 @@ async def main_loop():
         while True:
             info = await get_media_info()
             status = info.get("status")
+            playing = status == PlaybackStatus.PLAYING
 
-            if status != PlaybackStatus.PLAYING:
-                # pausado, parado ou nada tocando -> limpa status
-                if current_line is not None:
-                    update_discord_status(None)
-                    current_line = None
-                await asyncio.sleep(1)
-                continue
-
-            song_id = f"{info['title']} {info['artist']}"
-
-            if song_id != current_song:
-                current_song = song_id
+            if not playing:
+                # pausado, parado ou nada tocando -> queremos limpar o status
+                desired_text = None
                 current_line = None
+            else:
+                song_id = f"{info['title']} {info['artist']}"
 
-                lrc = await asyncio.to_thread(syncedlyrics.search, song_id)
-                current_lyrics = parse_lrc(lrc) if lrc else []
+                if song_id != current_song:
+                    current_song = song_id
+                    current_line = None
 
-            pos = info["position"]
+                    lrc = await asyncio.to_thread(syncedlyrics.search, song_id)
+                    current_lyrics = parse_lrc(lrc) if lrc else []
 
-            active = None
-            for t, txt in current_lyrics:
-                if t <= pos + 0.5:
-                    active = txt
-                else:
-                    break
+                pos = info["position"]
 
-            active = fix_joined_words(clean_lyric(active))
+                active = None
+                for t, txt in current_lyrics:
+                    if t <= pos + 0.5:
+                        active = txt
+                    else:
+                        break
 
-            if active != current_line:
-                current_line = active
+                active = fix_joined_words(clean_lyric(active))
 
-                clear_line_area()
+                # O terminal acompanha em tempo real (so o envio ao Discord
+                # e que respeita o limitador de frequencia, mais abaixo).
+                if active != current_line:
+                    current_line = active
+                    clear_line_area()
+                    render(info["title"], info["artist"], pos, current_line)
 
-                if current_line:
-                    asyncio.create_task(
-                        asyncio.to_thread(
-                            update_discord_status, f"\U0001f3b5 {current_line}"
-                        )
-                    )
+                desired_text = f"\U0001f3b5 {current_line}" if current_line else None
 
-                render(info["title"], info["artist"], pos, current_line)
+            # ---- limitador de frequencia ----
+            # Atualiza o Discord no maximo 1x a cada `min_interval` segundos,
+            # sempre com o texto mais recente, sem sobrepor um envio no outro.
+            now = time.monotonic()
+            free = send_task is None or send_task.done()
+            if desired_text != sent_text and free and (now - last_sent) >= min_interval:
+                sent_text = desired_text
+                last_sent = now
+                send_task = asyncio.create_task(
+                    asyncio.to_thread(update_discord_status, desired_text)
+                )
 
-            await asyncio.sleep(0.3)
+            await asyncio.sleep(0.3 if playing else 1)
 
     finally:
         show_cursor()
@@ -288,6 +298,13 @@ async def main_loop():
 
 def main():
     global PREVIEW
+
+    # Evita travar ao imprimir letras com emoji/acentos fora do cp1252 em
+    # consoles do Windows (e mostra os caracteres certos no Windows Terminal).
+    try:
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    except Exception:
+        pass
 
     parser = argparse.ArgumentParser(
         description="Sincroniza a letra da musica que esta tocando com o status do Discord."
@@ -298,8 +315,17 @@ def main():
         action="store_true",
         help="Mostra a letra no terminal sem mexer no Discord (nao precisa de token).",
     )
+    parser.add_argument(
+        "-i",
+        "--interval",
+        type=float,
+        default=5.0,
+        help="Segundos minimos entre atualizacoes do status no Discord "
+             "(padrao: 5). Maior = menos requisicoes e menos risco de deteccao.",
+    )
     args = parser.parse_args()
     PREVIEW = args.preview
+    min_interval = max(1.0, args.interval)  # piso de 1s por seguranca
 
     if not PREVIEW and not DISCORD_TOKEN:
         print(
@@ -312,7 +338,7 @@ def main():
         sys.exit(1)
 
     try:
-        asyncio.run(main_loop())
+        asyncio.run(main_loop(min_interval))
     except KeyboardInterrupt:
         show_cursor()
         update_discord_status(None)
