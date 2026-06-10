@@ -65,6 +65,15 @@ O restante do README (instalar Python, `.bat`, etc.) é para quem quer rodar pel
 
 ---
 
+## 📱 Quer no Android, Linux ou Mac?
+
+Esta versão principal é **só Windows**. Para **celular (Android via Termux)** ou
+outros sistemas, veja a **[versão Spotify](spotify/)**: é Python puro e detecta a
+música pela **API do Spotify** — roda em qualquer lugar, mas **só** pega o que
+toca no Spotify (não pega YouTube, navegador, etc.).
+
+---
+
 ## 📋 O que você precisa (modo código-fonte)
 
 - **Windows 10 ou 11** (só funciona no Windows)

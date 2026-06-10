@@ -1,6 +1,8 @@
-# NUNCA suba seu token
+# NUNCA suba seu token / segredos
 token.txt
 .env
+config.json
+spotify/config.json
 
 # Python
 __pycache__/

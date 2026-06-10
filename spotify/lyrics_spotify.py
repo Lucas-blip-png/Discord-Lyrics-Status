@@ -1,0 +1,252 @@
+"""
+Discord Lyrics Status - versao via API do Spotify (multiplataforma).
+
+Funciona em Windows, Linux, macOS e tambem no Android (via Termux), porque usa
+SO requisicoes HTTP - nada de APIs do Windows.
+
+Detecta a musica pela API do Spotify, busca a letra sincronizada e atualiza o
+seu status do Discord, linha por linha. Configure antes com:  setup_spotify.py
+"""
+import argparse
+import json
+import os
+import re
+import sys
+import time
+
+import requests
+import syncedlyrics
+
+CONFIG_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "config.json")
+
+SPOTIFY_TOKEN_URL = "https://accounts.spotify.com/api/token"
+SPOTIFY_NOW_PLAYING = "https://api.spotify.com/v1/me/player/currently-playing"
+DISCORD_SETTINGS = "https://discord.com/api/v9/users/@me/settings"
+
+POLL_INTERVAL = 4.0   # segundos entre chamadas a API do Spotify
+TICK = 0.4            # segundos entre verificacoes de linha (interpolado)
+
+
+def load_config():
+    if not os.path.exists(CONFIG_PATH):
+        print("config.json nao encontrado. Rode primeiro:  python setup_spotify.py")
+        sys.exit(1)
+    with open(CONFIG_PATH, "r", encoding="utf-8") as f:
+        return json.load(f)
+
+
+# ---------------------------------------------------------------------------
+# Letra (mesma logica da versao Windows)
+# ---------------------------------------------------------------------------
+def clean_lyric(text):
+    if not text:
+        return None
+    text = text.replace("\r", "").strip()
+    if "/" in text and len(text) > 40:
+        return None
+    if re.search(r"[a-z][A-Z][a-z]", text):
+        return None
+    if len(text) > 80:
+        return None
+    if len(re.sub(r"[a-zA-Z ]", "", text)) > len(text) * 0.4:
+        return None
+    return text
+
+
+def fix_joined_words(text):
+    if not text:
+        return text
+    return re.sub(r"([a-z])([A-Z])", r"\1 \2", text)
+
+
+def parse_lrc(lrc_string):
+    lyrics = []
+    if not lrc_string:
+        return lyrics
+    for line in lrc_string.splitlines():
+        m = re.match(r"\[(\d+):(\d+(?:\.\d+)?)\]\s*(.*)", line)
+        if m:
+            lyrics.append((int(m.group(1)) * 60 + float(m.group(2)), m.group(3).strip()))
+    return sorted(lyrics, key=lambda x: x[0])
+
+
+# ---------------------------------------------------------------------------
+# Spotify
+# ---------------------------------------------------------------------------
+class Spotify:
+    def __init__(self, client_id, client_secret, refresh_token):
+        self.client_id = client_id
+        self.client_secret = client_secret
+        self.refresh_token = refresh_token
+        self._access = None
+        self._expires_at = 0.0
+
+    def _refresh(self):
+        resp = requests.post(
+            SPOTIFY_TOKEN_URL,
+            data={"grant_type": "refresh_token", "refresh_token": self.refresh_token},
+            auth=(self.client_id, self.client_secret),
+            timeout=10,
+        )
+        resp.raise_for_status()
+        data = resp.json()
+        self._access = data["access_token"]
+        # renova 60s antes de expirar (expires_in normalmente = 3600)
+        self._expires_at = time.monotonic() + data.get("expires_in", 3600) - 60
+        if data.get("refresh_token"):
+            self.refresh_token = data["refresh_token"]
+
+    def access_token(self):
+        if not self._access or time.monotonic() >= self._expires_at:
+            self._refresh()
+        return self._access
+
+    def now_playing(self):
+        """(title, artist, progress_s, is_playing) ou None se nada estiver tocando."""
+        try:
+            resp = requests.get(
+                SPOTIFY_NOW_PLAYING,
+                headers={"Authorization": f"Bearer {self.access_token()}"},
+                timeout=10,
+            )
+        except Exception:
+            return None
+
+        if resp.status_code == 401:
+            self._access = None  # forca refresh na proxima
+            return None
+        if resp.status_code == 204 or not resp.content or resp.status_code != 200:
+            return None
+
+        data = resp.json()
+        item = data.get("item")
+        if not item:
+            return None
+        title = item.get("name", "")
+        artist = ", ".join(a.get("name", "") for a in item.get("artists", []))
+        progress = data.get("progress_ms", 0) / 1000.0
+        return title, artist, progress, bool(data.get("is_playing"))
+
+
+# ---------------------------------------------------------------------------
+# Discord
+# ---------------------------------------------------------------------------
+def update_discord_status(discord_token, text):
+    data = {"custom_status": {"text": text}} if text else {"custom_status": None}
+    try:
+        resp = requests.patch(
+            DISCORD_SETTINGS,
+            headers={"authorization": discord_token, "content-type": "application/json"},
+            json=data,
+            timeout=10,
+        )
+        if resp.status_code == 429:
+            time.sleep(float(resp.json().get("retry_after", 1)) + 0.5)
+        elif resp.status_code == 401:
+            print("\n[erro] Token do Discord invalido (401).")
+    except Exception:
+        pass
+
+
+# ---------------------------------------------------------------------------
+# Loop principal
+# ---------------------------------------------------------------------------
+def main():
+    parser = argparse.ArgumentParser(description="Discord Lyrics Status via API do Spotify.")
+    parser.add_argument("-p", "--preview", action="store_true",
+                        help="Mostra a letra no terminal sem mexer no Discord.")
+    parser.add_argument("-i", "--interval", type=float, default=5.0,
+                        help="Segundos minimos entre atualizacoes do status (padrao 5).")
+    args = parser.parse_args()
+    min_interval = max(1.0, args.interval)
+
+    try:
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    except Exception:
+        pass
+
+    cfg = load_config()
+    sp = Spotify(cfg["spotify_client_id"], cfg["spotify_client_secret"],
+                 cfg["spotify_refresh_token"])
+    discord_token = cfg.get("discord_token", "")
+    if not args.preview and not discord_token:
+        print("discord_token ausente no config.json. Rode setup_spotify.py de novo.")
+        sys.exit(1)
+
+    current_song = None
+    lyrics = []
+    current_line = None
+    sent_text = None
+    last_sent = 0.0
+
+    last_poll = 0.0
+    base_progress = 0.0   # progresso (s) no ultimo poll
+    base_time = 0.0       # monotonic no ultimo poll
+    playing = False
+    title = artist = ""
+
+    interactive = bool(sys.stdout) and sys.stdout.isatty()
+    print("Detectando musica no Spotify... (Ctrl+C para sair)")
+    if not args.preview:
+        update_discord_status(discord_token, None)
+
+    try:
+        while True:
+            now = time.monotonic()
+
+            # poll periodico a API do Spotify
+            if now - last_poll >= POLL_INTERVAL:
+                last_poll = now
+                info = sp.now_playing()
+                if info is None:
+                    playing = False
+                else:
+                    title, artist, base_progress, playing = info
+                    base_time = now
+
+            # posicao estimada entre polls (interpola com o relogio local)
+            pos = base_progress + (now - base_time) if playing else 0.0
+
+            if not playing:
+                desired = None
+                current_song = None
+                current_line = None
+            else:
+                song_id = f"{title} {artist}"
+                if song_id != current_song:
+                    current_song = song_id
+                    current_line = None
+                    lrc = syncedlyrics.search(song_id)
+                    lyrics = parse_lrc(lrc) if lrc else []
+
+                active = None
+                for t, txt in lyrics:
+                    if t <= pos + 0.5:
+                        active = txt
+                    else:
+                        break
+                active = fix_joined_words(clean_lyric(active))
+
+                if active != current_line:
+                    current_line = active
+                    if interactive:
+                        m, s = divmod(int(pos), 60)
+                        print(f"\n{title} - {artist}  [{m:02d}:{s:02d}]")
+                        print(f"  > {current_line or '...'}")
+                desired = f"\U0001f3b5 {current_line}" if current_line else None
+
+            # limitador de frequencia (envia no maximo 1x a cada min_interval)
+            if not args.preview and desired != sent_text and (now - last_sent) >= min_interval:
+                sent_text = desired
+                last_sent = now
+                update_discord_status(discord_token, desired)
+
+            time.sleep(TICK)
+    except KeyboardInterrupt:
+        if not args.preview:
+            update_discord_status(discord_token, None)
+        print("\nSaindo.")
+
+
+if __name__ == "__main__":
+    main()
