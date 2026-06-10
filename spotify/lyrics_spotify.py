@@ -26,6 +26,17 @@ DISCORD_SETTINGS = "https://discord.com/api/v9/users/@me/settings"
 POLL_INTERVAL = 4.0   # segundos entre chamadas a API do Spotify
 TICK = 0.4            # segundos entre verificacoes de linha (interpolado)
 
+# Limitador de frequencia: faixa permitida para o intervalo entre updates do
+# Discord. O valor escolhido fica salvo no config.json (campo "interval") ou
+# pode ser passado em --interval. Sempre travado nessa faixa.
+MIN_INTERVAL = 2.0        # mais rapido permitido, em segundos
+MAX_INTERVAL = 3600.0     # mais devagar permitido, em segundos
+DEFAULT_INTERVAL = 5.0
+
+
+def clamp_interval(value):
+    return max(MIN_INTERVAL, min(MAX_INTERVAL, value))
+
 
 def load_config():
     if not os.path.exists(CONFIG_PATH):
@@ -155,10 +166,11 @@ def main():
     parser = argparse.ArgumentParser(description="Discord Lyrics Status via API do Spotify.")
     parser.add_argument("-p", "--preview", action="store_true",
                         help="Mostra a letra no terminal sem mexer no Discord.")
-    parser.add_argument("-i", "--interval", type=float, default=5.0,
-                        help="Segundos minimos entre atualizacoes do status (padrao 5).")
+    parser.add_argument("-i", "--interval", type=float, default=None,
+                        help=f"Segundos entre atualizacoes do status "
+                             f"({MIN_INTERVAL:g}-{MAX_INTERVAL:g}; padrao do config "
+                             f"ou {DEFAULT_INTERVAL:g}). Maior = mais seguro.")
     args = parser.parse_args()
-    min_interval = max(1.0, args.interval)
 
     try:
         sys.stdout.reconfigure(encoding="utf-8", errors="replace")
@@ -168,6 +180,15 @@ def main():
     cfg = load_config()
     sp = Spotify(cfg["spotify_client_id"], cfg["spotify_client_secret"],
                  cfg["spotify_refresh_token"])
+
+    # intervalo: --interval (se passado) ou o salvo no config.json, sempre travado
+    if args.interval is not None:
+        min_interval = clamp_interval(args.interval)
+    else:
+        try:
+            min_interval = clamp_interval(float(cfg.get("interval", DEFAULT_INTERVAL)))
+        except Exception:
+            min_interval = DEFAULT_INTERVAL
     discord_token = cfg.get("discord_token", "")
     if not args.preview and not discord_token:
         print("discord_token ausente no config.json. Rode setup_spotify.py de novo.")

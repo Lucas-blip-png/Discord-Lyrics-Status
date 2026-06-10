@@ -19,6 +19,10 @@ SCOPE = "user-read-currently-playing"
 AUTH_URL = "https://accounts.spotify.com/authorize"
 TOKEN_URL = "https://accounts.spotify.com/api/token"
 
+MIN_INTERVAL = 2.0
+MAX_INTERVAL = 3600.0
+DEFAULT_INTERVAL = 5.0
+
 
 def ask(prompt):
     try:
@@ -93,11 +97,26 @@ def main():
         print("O token do Discord e obrigatorio.")
         sys.exit(1)
 
+    print()
+    print(f"PASSO 5) Frequencia de atualizacao (entre {MIN_INTERVAL:g} e "
+          f"{MAX_INTERVAL:g} segundos).")
+    print(f"   Maior = menos requisicoes e mais seguro. Enter usa o padrao "
+          f"({DEFAULT_INTERVAL:g}s).")
+    raw = ask("Intervalo em segundos: ")
+    interval = DEFAULT_INTERVAL
+    if raw:
+        try:
+            interval = max(MIN_INTERVAL, min(MAX_INTERVAL, float(raw.replace(",", "."))))
+        except ValueError:
+            print(f"Valor invalido; usando {DEFAULT_INTERVAL:g}s.")
+    print(f"   -> intervalo: {interval:g}s")
+
     cfg = {
         "spotify_client_id": client_id,
         "spotify_client_secret": client_secret,
         "spotify_refresh_token": refresh_token,
         "discord_token": discord_token,
+        "interval": interval,
     }
     with open(CONFIG_PATH, "w", encoding="utf-8") as f:
         json.dump(cfg, f, indent=2)

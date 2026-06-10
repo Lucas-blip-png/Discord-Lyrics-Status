@@ -23,7 +23,12 @@ python lyrics_spotify.py    # rodar
 ```
 
 Para testar sem mexer no Discord: `python lyrics_spotify.py --preview`
-Para atualizar mais devagar (mais seguro): `python lyrics_spotify.py --interval 8`
+
+**Frequência de atualização:** o `setup_spotify.py` pergunta o intervalo (em
+segundos) e salva no `config.json`. Você pode mudar a qualquer momento editando o
+campo `"interval"` no `config.json`, ou passando `--interval N` ao rodar. Faixa
+permitida: **2 a 3600 segundos** (maior = mais seguro). Ex.:
+`python lyrics_spotify.py --interval 8`
 
 ---
 

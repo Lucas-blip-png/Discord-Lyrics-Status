@@ -153,19 +153,26 @@ Você tem duas opções:
 - **Abrir só quando quiser:** rode `python lyrics.py` (ou use `testar.bat` tirando
   o `--preview`).
 
-### Ajustar a frequência de atualização (opcional)
+### Ajustar a frequência de atualização
 
-Por segurança, o status é atualizado **no máximo 1 vez a cada 5 segundos** — assim
-faz menos requisições e fica menos "cara de bot". Dá pra mudar com `--interval`:
+Por segurança, o status é atualizado **no máximo 1 vez a cada X segundos** (padrão
+**5**). Você escolhe o valor, dentro da faixa permitida de **2 a 3600 segundos**
+(o programa não deixa ir mais rápido que 2s pra não tomar rate-limit/ban).
+
+**Jeito fácil:** dois cliques em **`configurar_intervalo.bat`**, digite os segundos.
+O valor fica **salvo** e vale também pro `.exe` e pro **início automático**.
+
+**Pela linha de comando:**
 
 ```bash
-python lyrics.py --interval 8    # no maximo a cada 8s (mais seguro)
-python lyrics.py --interval 3    # mais rapido, porem mais requisicoes
+python lyrics.py --interval 8    # usa 8s e salva pras proximas vezes
+python lyrics.py --set-interval 10   # so salva 10s e sai (nao inicia)
 ```
 
-> Quanto **maior** o número, **menos** requisições ao Discord (menor risco de
-> detecção), mas a letra acompanha com um pouquinho mais de atraso. O início
-> automático usa o padrão de 5s.
+> Quanto **maior** o número, **menos** requisições ao Discord (menor risco), mas a
+> letra acompanha com um pouco mais de atraso. O valor salvo fica em `interval.txt`
+> (ao lado do programa). Quer mudar a faixa permitida? Edite `MIN_INTERVAL`/
+> `MAX_INTERVAL` no topo do `lyrics.py`.
 
 ---
 
@@ -188,6 +195,7 @@ python lyrics.py --interval 3    # mais rapido, porem mais requisicoes
 | `requirements.txt` | Lista do que o Python precisa instalar |
 | `instalar_dependencias.bat` | Instala o que o programa precisa |
 | `configurar_token.bat` | Salva seu token no `token.txt` |
+| `configurar_intervalo.bat` | Define de quantos em quantos segundos o status atualiza |
 | `testar.bat` | Testa no terminal sem mexer no Discord (modo preview) |
 | `instalar_autostart.bat` | Liga o início automático com o Windows (escondido) |
 | `desinstalar_autostart.bat` | Desliga o início automático |

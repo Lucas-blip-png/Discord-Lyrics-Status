@@ -76,6 +76,43 @@ except Exception:
 
 
 # ---------------------------------------------------------------------------
+# Intervalo de atualizacao (limitador de frequencia)   <- EDITE AQUI SE QUISER
+# ---------------------------------------------------------------------------
+# Trava de seguranca: o status NUNCA e atualizado mais rapido que MIN_INTERVAL
+# (evita rate-limit/ban) nem mais devagar que MAX_INTERVAL. Dentro dessa faixa
+# voce escolhe o valor com --interval, com configurar_intervalo.bat, ou editando
+# o arquivo interval.txt (ao lado do programa).
+MIN_INTERVAL = 2.0        # mais rapido permitido, em segundos (menor = mais risco)
+MAX_INTERVAL = 3600.0     # mais devagar permitido, em segundos
+DEFAULT_INTERVAL = 5.0
+
+
+def _interval_file():
+    return os.path.join(_app_dir(), "interval.txt")
+
+
+def clamp_interval(value):
+    return max(MIN_INTERVAL, min(MAX_INTERVAL, value))
+
+
+def load_interval():
+    """Le o intervalo salvo (interval.txt), sempre dentro da faixa permitida."""
+    path = _interval_file()
+    if os.path.exists(path):
+        try:
+            with open(path, "r", encoding="utf-8") as f:
+                return clamp_interval(float(f.read().strip().replace(",", ".")))
+        except Exception:
+            pass
+    return DEFAULT_INTERVAL
+
+
+def save_interval(value):
+    with open(_interval_file(), "w", encoding="ascii", errors="ignore") as f:
+        f.write(f"{clamp_interval(value):g}")
+
+
+# ---------------------------------------------------------------------------
 # Terminal helpers
 # ---------------------------------------------------------------------------
 def hide_cursor():
@@ -335,13 +372,45 @@ def main():
         "-i",
         "--interval",
         type=float,
-        default=5.0,
-        help="Segundos minimos entre atualizacoes do status no Discord "
-             "(padrao: 5). Maior = menos requisicoes e menos risco de deteccao.",
+        default=None,
+        help=f"Segundos entre atualizacoes do status (entre {MIN_INTERVAL:g} e "
+             f"{MAX_INTERVAL:g}; padrao {DEFAULT_INTERVAL:g}). Maior = mais seguro. "
+             "Quando informado, fica salvo para as proximas execucoes.",
+    )
+    parser.add_argument(
+        "--set-interval",
+        type=float,
+        default=None,
+        metavar="SEGUNDOS",
+        help="Apenas salva o intervalo (em segundos) e sai, sem iniciar.",
     )
     args = parser.parse_args()
     PREVIEW = args.preview
-    min_interval = max(1.0, args.interval)  # piso de 1s por seguranca
+
+    # --set-interval: so grava o valor e sai (usado pelo configurar_intervalo.bat)
+    if args.set_interval is not None:
+        v = clamp_interval(args.set_interval)
+        try:
+            save_interval(v)
+            print(f"Intervalo definido para {v:g}s "
+                  f"(permitido: {MIN_INTERVAL:g}-{MAX_INTERVAL:g}s).")
+        except Exception as e:
+            print(f"Nao consegui salvar: {e}")
+        return
+
+    # intervalo desta execucao: --interval (e persiste) ou o valor salvo
+    if args.interval is not None:
+        min_interval = clamp_interval(args.interval)
+        if min_interval != args.interval:
+            print(f"Intervalo fora da faixa; ajustei para {min_interval:g}s "
+                  f"(min {MIN_INTERVAL:g}s / max {MAX_INTERVAL:g}s).")
+        try:
+            save_interval(min_interval)
+            print(f"Intervalo: {min_interval:g}s (salvo para as proximas vezes).")
+        except Exception:
+            pass
+    else:
+        min_interval = load_interval()
 
     global DISCORD_TOKEN
 
