@@ -26,8 +26,20 @@ except ImportError:  # pragma: no cover
 # ---------------------------------------------------------------------------
 # Token
 # ---------------------------------------------------------------------------
+def _app_dir():
+    """Pasta do programa: ao lado do .exe quando empacotado (PyInstaller),
+    senao ao lado do proprio lyrics.py."""
+    if getattr(sys, "frozen", False):
+        return os.path.dirname(os.path.abspath(sys.executable))
+    return os.path.dirname(os.path.abspath(__file__))
+
+
+def _token_file():
+    return os.path.join(_app_dir(), "token.txt")
+
+
 def load_token():
-    """Le o token do ambiente (DISCORD_TOKEN) ou de um token.txt ao lado do script.
+    """Le o token do ambiente (DISCORD_TOKEN) ou de um token.txt ao lado do app.
 
     NUNCA cole seu token direto no codigo: assim ele nao vaza se voce
     compartilhar/subir o arquivo pra algum lugar.
@@ -36,13 +48,17 @@ def load_token():
     if token:
         return token
 
-    here = os.path.dirname(os.path.abspath(__file__))
-    path = os.path.join(here, "token.txt")
+    path = _token_file()
     if os.path.exists(path):
         with open(path, "r", encoding="utf-8") as f:
             return f.read().strip()
 
     return ""
+
+
+def save_token(token):
+    with open(_token_file(), "w", encoding="ascii", errors="ignore") as f:
+        f.write(token.strip())
 
 
 DISCORD_TOKEN = load_token()
@@ -326,6 +342,27 @@ def main():
     args = parser.parse_args()
     PREVIEW = args.preview
     min_interval = max(1.0, args.interval)  # piso de 1s por seguranca
+
+    global DISCORD_TOKEN
+
+    # Primeira execucao sem token: se houver terminal, pede e salva.
+    if not PREVIEW and not DISCORD_TOKEN:
+        can_ask = INTERACTIVE and getattr(sys.stdin, "isatty", lambda: False)()
+        if can_ask:
+            print("Nenhum token salvo ainda.")
+            print("Cole seu token do Discord e tecle Enter (ou deixe vazio p/ sair).")
+            print("(O token fica salvo so neste PC, em token.txt. NUNCA compartilhe.)")
+            try:
+                entered = input("> ").strip()
+            except EOFError:
+                entered = ""
+            if entered:
+                try:
+                    save_token(entered)
+                    DISCORD_TOKEN = entered
+                    print("Token salvo! Iniciando...\n")
+                except Exception as e:
+                    print(f"Nao consegui salvar o token: {e}")
 
     if not PREVIEW and not DISCORD_TOKEN:
         print(

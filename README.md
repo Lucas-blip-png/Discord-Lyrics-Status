@@ -42,7 +42,30 @@ Pronto! Os detalhes de cada passo estão abaixo. 👇
 
 ---
 
-## 📋 O que você precisa
+## 💾 Jeito mais fácil: baixar o `.exe` (sem instalar Python)
+
+Se você só quer **usar**, sem mexer com Python nem `.bat`:
+
+1. Vá na aba **[Releases](../../releases)** e baixe o **`DiscordLyricsStatus.exe`**.
+2. Coloque o `.exe` numa pasta sua (ex.: Documentos).
+3. Dê **dois cliques**. Na **primeira vez** ele vai **pedir seu token** (veja como
+   pegar no **Passo 4** abaixo) — cole e tecle Enter. Ele salva num `token.txt`
+   ao lado do `.exe` (não precisa colocar de novo).
+4. Toque uma música. 🎶
+
+> 🧪 **Testar sem mexer no Discord:** abra o Prompt de Comando na pasta e rode
+> `DiscordLyricsStatus.exe --preview`.
+>
+> 🚀 **Iniciar com o Windows:** aperte `Win + R`, digite `shell:startup`, e
+> coloque um **atalho** do `.exe` (clique direito → *Enviar para → Área de
+> trabalho*, depois mova o atalho pra essa pasta).
+
+O restante do README (instalar Python, `.bat`, etc.) é para quem quer rodar pelo
+**código-fonte** ou modificar o projeto.
+
+---
+
+## 📋 O que você precisa (modo código-fonte)
 
 - **Windows 10 ou 11** (só funciona no Windows)
 - **Python 3.8 ou mais novo**

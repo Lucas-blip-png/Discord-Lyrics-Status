@@ -7,3 +7,8 @@ __pycache__/
 *.pyc
 .venv/
 venv/
+
+# Build do PyInstaller (.exe) - nao versionar, vai como release
+build/
+dist/
+*.spec
