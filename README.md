@@ -259,7 +259,9 @@ trocar o status. A letra vem de provedores públicos de letras. Mas, como é
 selfbot, o risco real é **banimento da conta** — não roubo de dados.
 
 **Funciona no celular / Mac / Linux?**
-Não. Só no **Windows**, porque usa as APIs de mídia do Windows.
+Este aqui (`lyrics.py`) é só **Windows**. Mas tem alternativas no repositório:
+- 📱 **Android**: app nativo na pasta [`android/`](android/) (lê qualquer player, sem Termux).
+- 💻 **Mac / Linux / Android via Termux**: a [versão Spotify](spotify/) (só HTTP).
 
 **Preciso deixar algo aberto?**
 O programa precisa estar rodando (em segundo plano) pra atualizar o status.
