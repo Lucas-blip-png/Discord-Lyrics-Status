@@ -176,6 +176,23 @@ python lyrics.py --set-interval 10   # so salva 10s e sai (nao inicia)
 
 ---
 
+## 🌍 Idiomas
+
+A interface detecta **automaticamente o idioma do Windows**. Já vem traduzida em
+**12 idiomas**: Inglês, Português, Espanhol, Francês, Alemão, Italiano, Russo,
+Japonês, Coreano, Chinês (simplificado), Turco e Polonês.
+
+Para trocar manualmente: dois cliques em **`configurar_idioma.bat`** (ou
+`python lyrics.py --lang es`). Para voltar ao automático, rode o `.bat` e deixe vazio.
+
+> 💡 A **letra das músicas** funciona em **qualquer idioma** (coreano, japonês, etc.).
+> Isto aqui é só o idioma dos **textos do programa**.
+>
+> Quer ajudar a traduzir? Copie `_i18n/base.json` (parte `en`) para
+> `_i18n/<codigo>.json`, traduza os valores e rode `python _build_lang.py`.
+
+---
+
 ## 🛑 Como controlar
 
 | Quero... | Faça |
@@ -196,6 +213,7 @@ python lyrics.py --set-interval 10   # so salva 10s e sai (nao inicia)
 | `instalar_dependencias.bat` | Instala o que o programa precisa |
 | `configurar_token.bat` | Salva seu token no `token.txt` |
 | `configurar_intervalo.bat` | Define de quantos em quantos segundos o status atualiza |
+| `configurar_idioma.bat` | Escolhe o idioma da interface |
 | `testar.bat` | Testa no terminal sem mexer no Discord (modo preview) |
 | `instalar_autostart.bat` | Liga o início automático com o Windows (escondido) |
 | `desinstalar_autostart.bat` | Desliga o início automático |

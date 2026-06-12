@@ -13,6 +13,9 @@ import urllib.parse
 
 import requests
 
+import lang
+from lang import t
+
 CONFIG_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "config.json")
 REDIRECT_URI = "http://127.0.0.1:8888/callback"
 SCOPE = "user-read-currently-playing"
@@ -32,20 +35,30 @@ def ask(prompt):
 
 
 def main():
+    try:
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    except Exception:
+        pass
+
+    # Pergunta o idioma primeiro, para o resto do assistente sair traduzido.
+    chosen_lang = ask(t("setup_lang_prompt"))
+    if chosen_lang:
+        lang.set_lang(chosen_lang)
+
     print("=" * 62)
-    print(" Configuracao - Discord Lyrics Status (versao Spotify)")
+    print(" " + t("setup_title"))
     print("=" * 62)
     print()
-    print("PASSO 1) Crie um app em: https://developer.spotify.com/dashboard")
-    print("   - Clique em 'Create app'.")
-    print("   - Em 'Redirect URIs' adicione EXATAMENTE este endereco:")
+    print(t("setup_step1"))
+    print(t("setup_step1_a"))
+    print(t("setup_step1_b"))
     print(f"        {REDIRECT_URI}")
-    print("   - Salve e copie o 'Client ID' e o 'Client Secret'.")
+    print(t("setup_step1_c"))
     print()
-    client_id = ask("Client ID: ")
-    client_secret = ask("Client Secret: ")
+    client_id = ask(t("prompt_client_id"))
+    client_secret = ask(t("prompt_client_secret"))
     if not client_id or not client_secret:
-        print("Client ID/Secret sao obrigatorios.")
+        print(t("client_required"))
         sys.exit(1)
 
     url = AUTH_URL + "?" + urllib.parse.urlencode({
@@ -55,22 +68,22 @@ def main():
         "scope": SCOPE,
     })
     print()
-    print("PASSO 2) Abra este link no navegador, faca login e clique em 'Agree':")
+    print(t("setup_step2"))
     print()
     print("   " + url)
     print()
-    print("   Voce sera redirecionado para algo como:")
+    print(t("setup_step2_a"))
     print(f"        {REDIRECT_URI}?code=XXXXXXXX")
-    print("   A pagina pode mostrar 'nao foi possivel acessar' - tudo bem!")
-    print("   O que importa e a URL inteira que ficou na barra de endereco.")
+    print(t("setup_step2_b"))
+    print(t("setup_step2_c"))
     print()
-    redirected = ask("PASSO 3) Cole aqui a URL completa pra onde voce foi redirecionado: ")
+    redirected = ask(t("setup_step3"))
     code = redirected
     if "code=" in redirected:
         q = urllib.parse.urlparse(redirected).query
         code = urllib.parse.parse_qs(q).get("code", [redirected])[0]
     if not code:
-        print("Nao consegui encontrar o 'code' na URL.")
+        print(t("code_not_found"))
         sys.exit(1)
 
     resp = requests.post(
@@ -80,36 +93,34 @@ def main():
         timeout=15,
     )
     if resp.status_code != 200:
-        print("Falha ao trocar o code por token:", resp.status_code)
+        print(t("token_exchange_failed"), resp.status_code)
         print(resp.text)
         sys.exit(1)
     refresh_token = resp.json().get("refresh_token")
     if not refresh_token:
-        print("O Spotify nao retornou um refresh_token:", resp.json())
+        print(t("no_refresh_token"), resp.json())
         sys.exit(1)
-    print("Spotify conectado com sucesso!")
+    print(t("spotify_connected"))
     print()
 
-    print("PASSO 4) Cole o seu token do Discord.")
-    print("   (Como pegar: veja o README. NUNCA compartilhe esse token.)")
-    discord_token = ask("Token do Discord: ")
+    print(t("setup_step4"))
+    print(t("setup_step4_a"))
+    discord_token = ask(t("prompt_discord_token"))
     if not discord_token:
-        print("O token do Discord e obrigatorio.")
+        print(t("discord_required"))
         sys.exit(1)
 
     print()
-    print(f"PASSO 5) Frequencia de atualizacao (entre {MIN_INTERVAL:g} e "
-          f"{MAX_INTERVAL:g} segundos).")
-    print(f"   Maior = menos requisicoes e mais seguro. Enter usa o padrao "
-          f"({DEFAULT_INTERVAL:g}s).")
-    raw = ask("Intervalo em segundos: ")
+    print(t("setup_step5", min=f"{MIN_INTERVAL:g}", max=f"{MAX_INTERVAL:g}"))
+    print(t("setup_step5_a", default=f"{DEFAULT_INTERVAL:g}"))
+    raw = ask(t("prompt_interval"))
     interval = DEFAULT_INTERVAL
     if raw:
         try:
             interval = max(MIN_INTERVAL, min(MAX_INTERVAL, float(raw.replace(",", "."))))
         except ValueError:
-            print(f"Valor invalido; usando {DEFAULT_INTERVAL:g}s.")
-    print(f"   -> intervalo: {interval:g}s")
+            print(t("invalid_using_default", default=f"{DEFAULT_INTERVAL:g}"))
+    print(t("interval_arrow", v=f"{interval:g}"))
 
     cfg = {
         "spotify_client_id": client_id,
@@ -117,15 +128,16 @@ def main():
         "spotify_refresh_token": refresh_token,
         "discord_token": discord_token,
         "interval": interval,
+        "lang": lang.get_lang(),
     }
     with open(CONFIG_PATH, "w", encoding="utf-8") as f:
         json.dump(cfg, f, indent=2)
 
     print()
-    print(f"Tudo salvo em: {CONFIG_PATH}")
-    print("Esse arquivo guarda seus segredos - NAO compartilhe e NAO suba pro git.")
+    print(t("saved_to", path=CONFIG_PATH))
+    print(t("secrets_warning"))
     print()
-    print("Agora e so rodar:  python lyrics_spotify.py")
+    print(t("now_run"))
 
 
 if __name__ == "__main__":

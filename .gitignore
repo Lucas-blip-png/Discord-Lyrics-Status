@@ -4,8 +4,9 @@ token.txt
 config.json
 spotify/config.json
 
-# Configuracao local do usuario (intervalo escolhido)
+# Configuracao local do usuario (intervalo e idioma escolhidos)
 interval.txt
+lang.txt
 
 # Python
 __pycache__/

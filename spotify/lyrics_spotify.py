@@ -17,6 +17,9 @@ import time
 import requests
 import syncedlyrics
 
+import lang
+from lang import t
+
 CONFIG_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "config.json")
 
 SPOTIFY_TOKEN_URL = "https://accounts.spotify.com/api/token"
@@ -40,7 +43,7 @@ def clamp_interval(value):
 
 def load_config():
     if not os.path.exists(CONFIG_PATH):
-        print("config.json nao encontrado. Rode primeiro:  python setup_spotify.py")
+        print(t("config_not_found"))
         sys.exit(1)
     with open(CONFIG_PATH, "r", encoding="utf-8") as f:
         return json.load(f)
@@ -154,7 +157,7 @@ def update_discord_status(discord_token, text):
         if resp.status_code == 429:
             time.sleep(float(resp.json().get("retry_after", 1)) + 0.5)
         elif resp.status_code == 401:
-            print("\n[erro] Token do Discord invalido (401).")
+            print("\n" + t("discord_401"))
     except Exception:
         pass
 
@@ -163,13 +166,19 @@ def update_discord_status(discord_token, text):
 # Loop principal
 # ---------------------------------------------------------------------------
 def main():
-    parser = argparse.ArgumentParser(description="Discord Lyrics Status via API do Spotify.")
-    parser.add_argument("-p", "--preview", action="store_true",
-                        help="Mostra a letra no terminal sem mexer no Discord.")
+    # idioma cedo (para a ajuda): --lang no argv tem prioridade
+    for i, a in enumerate(sys.argv):
+        if a in ("-L", "--lang") and i + 1 < len(sys.argv):
+            lang.set_lang(sys.argv[i + 1])
+        elif a.startswith("--lang="):
+            lang.set_lang(a.split("=", 1)[1])
+
+    parser = argparse.ArgumentParser(description=t("sp_arg_desc"))
+    parser.add_argument("-p", "--preview", action="store_true", help=t("arg_preview"))
     parser.add_argument("-i", "--interval", type=float, default=None,
-                        help=f"Segundos entre atualizacoes do status "
-                             f"({MIN_INTERVAL:g}-{MAX_INTERVAL:g}; padrao do config "
-                             f"ou {DEFAULT_INTERVAL:g}). Maior = mais seguro.")
+                        help=t("sp_arg_interval", min=f"{MIN_INTERVAL:g}",
+                               max=f"{MAX_INTERVAL:g}", default=f"{DEFAULT_INTERVAL:g}"))
+    parser.add_argument("-L", "--lang", default=None, metavar="CODE", help=t("arg_lang"))
     args = parser.parse_args()
 
     try:
@@ -178,6 +187,13 @@ def main():
         pass
 
     cfg = load_config()
+
+    # idioma final: --lang > config.json "lang" > auto-deteccao
+    if args.lang:
+        lang.set_lang(args.lang)
+    elif cfg.get("lang"):
+        lang.set_lang(cfg.get("lang"))
+
     sp = Spotify(cfg["spotify_client_id"], cfg["spotify_client_secret"],
                  cfg["spotify_refresh_token"])
 
@@ -191,7 +207,7 @@ def main():
             min_interval = DEFAULT_INTERVAL
     discord_token = cfg.get("discord_token", "")
     if not args.preview and not discord_token:
-        print("discord_token ausente no config.json. Rode setup_spotify.py de novo.")
+        print(t("discord_token_missing_cfg"))
         sys.exit(1)
 
     current_song = None
@@ -207,7 +223,7 @@ def main():
     title = artist = ""
 
     interactive = bool(sys.stdout) and sys.stdout.isatty()
-    print("Detectando musica no Spotify... (Ctrl+C para sair)")
+    print(t("detecting_spotify"))
     if not args.preview:
         update_discord_status(discord_token, None)
 
@@ -241,8 +257,8 @@ def main():
                     lyrics = parse_lrc(lrc) if lrc else []
 
                 active = None
-                for t, txt in lyrics:
-                    if t <= pos + 0.5:
+                for ts, txt in lyrics:
+                    if ts <= pos + 0.5:
                         active = txt
                     else:
                         break
@@ -266,7 +282,7 @@ def main():
     except KeyboardInterrupt:
         if not args.preview:
             update_discord_status(discord_token, None)
-        print("\nSaindo.")
+        print("\n" + t("exiting"))
 
 
 if __name__ == "__main__":

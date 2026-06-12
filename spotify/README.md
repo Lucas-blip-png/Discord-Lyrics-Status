@@ -30,6 +30,10 @@ campo `"interval"` no `config.json`, ou passando `--interval N` ao rodar. Faixa
 permitida: **2 a 3600 segundos** (maior = mais seguro). Ex.:
 `python lyrics_spotify.py --interval 8`
 
+**Idioma:** o `setup_spotify.py` detecta o idioma do sistema e pergunta logo no
+início. Disponível em 12 idiomas (en, pt, es, fr, de, it, ru, ja, ko, zh, tr, pl).
+Fica salvo no `config.json` (campo `"lang"`); dá pra sobrescrever com `--lang es`.
+
 ---
 
 ## 📱 No Android (Termux)

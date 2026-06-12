@@ -9,6 +9,9 @@ import requests
 import syncedlyrics
 from datetime import datetime, timezone
 
+import lang
+from lang import t
+
 # winrt foi dividido em vários pacotes; "winsdk" empacota tudo num só.
 # Tentamos os dois para facilitar a instalacao.
 try:
@@ -110,6 +113,26 @@ def load_interval():
 def save_interval(value):
     with open(_interval_file(), "w", encoding="ascii", errors="ignore") as f:
         f.write(f"{clamp_interval(value):g}")
+
+
+def _lang_file():
+    return os.path.join(_app_dir(), "lang.txt")
+
+
+def load_lang_pref():
+    path = _lang_file()
+    if os.path.exists(path):
+        try:
+            with open(path, "r", encoding="utf-8") as f:
+                return f.read().strip()
+        except Exception:
+            pass
+    return ""
+
+
+def save_lang_pref(code):
+    with open(_lang_file(), "w", encoding="ascii", errors="ignore") as f:
+        f.write(code)
 
 
 # ---------------------------------------------------------------------------
@@ -222,7 +245,7 @@ def update_discord_status(text):
             time.sleep(float(retry_after) + 0.5)
         elif resp.status_code == 401:
             # token invalido — avisa uma vez e segue (loop trata)
-            print("\n[erro] Token invalido (401). Verifique seu DISCORD_TOKEN.")
+            print("\n" + t("token_invalid_401"))
     except Exception:
         pass
 
@@ -262,12 +285,12 @@ def render(song, artist, pos, lyric):
     m, s = divmod(int(pos), 60)
 
     if PREVIEW:
-        print("[ MODO PREVIEW - o status do Discord nao sera alterado ]\n")
+        print(t("preview_banner") + "\n")
 
-    print(f"Song   : {song}")
-    print(f"Artist : {artist}")
-    print(f"Time   : {m:02d}:{s:02d}")
-    print(f"Lyrics : {trim(lyric) if lyric else '...'}")
+    print(f"{t('lbl_song')}: {song}")
+    print(f"{t('lbl_artist')}: {artist}")
+    print(f"{t('lbl_time')}: {m:02d}:{s:02d}")
+    print(f"{t('lbl_lyrics')}: {trim(lyric) if lyric else '...'}")
 
 
 # ---------------------------------------------------------------------------
@@ -288,7 +311,7 @@ async def main_loop(min_interval):
     if INTERACTIVE:
         os.system("cls" if os.name == "nt" else "clear")
         hide_cursor()
-        print("Detectando musica...")
+        print(t("detecting_music"))
 
     try:
         while True:
@@ -313,8 +336,8 @@ async def main_loop(min_interval):
                 pos = info["position"]
 
                 active = None
-                for t, txt in current_lyrics:
-                    if t <= pos + 0.5:
+                for ts, txt in current_lyrics:
+                    if ts <= pos + 0.5:
                         active = txt
                     else:
                         break
@@ -359,54 +382,73 @@ def main():
     except Exception:
         pass
 
-    parser = argparse.ArgumentParser(
-        description="Sincroniza a letra da musica que esta tocando com o status do Discord."
-    )
+    # Resolve o idioma cedo (antes do parser), para a ajuda ja sair traduzida:
+    # preferencia salva (lang.txt) > variavel de ambiente > auto-deteccao.
+    # Um --lang/--set-lang no argv tem prioridade.
+    pref = load_lang_pref() or os.environ.get("DISCORD_LYRICS_LANG", "")
+    if pref:
+        lang.set_lang(pref)
+    for i, a in enumerate(sys.argv):
+        if a in ("-L", "--lang", "--set-lang") and i + 1 < len(sys.argv):
+            lang.set_lang(sys.argv[i + 1])
+        elif a.startswith("--lang=") or a.startswith("--set-lang="):
+            lang.set_lang(a.split("=", 1)[1])
+
+    parser = argparse.ArgumentParser(description=t("arg_desc"))
+    parser.add_argument("-p", "--preview", action="store_true",
+                        help=t("arg_preview_win"))
     parser.add_argument(
-        "-p",
-        "--preview",
-        action="store_true",
-        help="Mostra a letra no terminal sem mexer no Discord (nao precisa de token).",
+        "-i", "--interval", type=float, default=None,
+        help=t("arg_interval", min=f"{MIN_INTERVAL:g}", max=f"{MAX_INTERVAL:g}",
+               default=f"{DEFAULT_INTERVAL:g}"),
     )
-    parser.add_argument(
-        "-i",
-        "--interval",
-        type=float,
-        default=None,
-        help=f"Segundos entre atualizacoes do status (entre {MIN_INTERVAL:g} e "
-             f"{MAX_INTERVAL:g}; padrao {DEFAULT_INTERVAL:g}). Maior = mais seguro. "
-             "Quando informado, fica salvo para as proximas execucoes.",
-    )
-    parser.add_argument(
-        "--set-interval",
-        type=float,
-        default=None,
-        metavar="SEGUNDOS",
-        help="Apenas salva o intervalo (em segundos) e sai, sem iniciar.",
-    )
+    parser.add_argument("--set-interval", type=float, default=None,
+                        metavar="SEGUNDOS", help=t("arg_set_interval"))
+    parser.add_argument("-L", "--lang", default=None, metavar="CODIGO",
+                        help=t("arg_lang"))
+    parser.add_argument("--set-lang", default=None, metavar="CODIGO",
+                        help=t("arg_set_lang"))
     args = parser.parse_args()
     PREVIEW = args.preview
+
+    # --set-lang: salva o idioma e sai
+    if args.set_lang is not None:
+        lang.set_lang(args.set_lang)
+        try:
+            save_lang_pref(lang.get_lang())
+        except Exception:
+            pass
+        print(t("lang_set", lang=lang.get_lang()))
+        return
+
+    # --lang: usa neste run e fica salvo
+    if args.lang is not None:
+        lang.set_lang(args.lang)
+        try:
+            save_lang_pref(lang.get_lang())
+        except Exception:
+            pass
 
     # --set-interval: so grava o valor e sai (usado pelo configurar_intervalo.bat)
     if args.set_interval is not None:
         v = clamp_interval(args.set_interval)
         try:
             save_interval(v)
-            print(f"Intervalo definido para {v:g}s "
-                  f"(permitido: {MIN_INTERVAL:g}-{MAX_INTERVAL:g}s).")
+            print(t("interval_saved_exit", v=f"{v:g}",
+                    min=f"{MIN_INTERVAL:g}", max=f"{MAX_INTERVAL:g}"))
         except Exception as e:
-            print(f"Nao consegui salvar: {e}")
+            print(t("interval_save_failed", error=e))
         return
 
     # intervalo desta execucao: --interval (e persiste) ou o valor salvo
     if args.interval is not None:
         min_interval = clamp_interval(args.interval)
         if min_interval != args.interval:
-            print(f"Intervalo fora da faixa; ajustei para {min_interval:g}s "
-                  f"(min {MIN_INTERVAL:g}s / max {MAX_INTERVAL:g}s).")
+            print(t("interval_out_of_range", v=f"{min_interval:g}",
+                    min=f"{MIN_INTERVAL:g}", max=f"{MAX_INTERVAL:g}"))
         try:
             save_interval(min_interval)
-            print(f"Intervalo: {min_interval:g}s (salvo para as proximas vezes).")
+            print(t("interval_set_running", v=f"{min_interval:g}"))
         except Exception:
             pass
     else:
@@ -418,9 +460,9 @@ def main():
     if not PREVIEW and not DISCORD_TOKEN:
         can_ask = INTERACTIVE and getattr(sys.stdin, "isatty", lambda: False)()
         if can_ask:
-            print("Nenhum token salvo ainda.")
-            print("Cole seu token do Discord e tecle Enter (ou deixe vazio p/ sair).")
-            print("(O token fica salvo so neste PC, em token.txt. NUNCA compartilhe.)")
+            print(t("token_none_yet"))
+            print(t("token_paste_prompt"))
+            print(t("token_local_note"))
             try:
                 entered = input("> ").strip()
             except EOFError:
@@ -429,18 +471,12 @@ def main():
                 try:
                     save_token(entered)
                     DISCORD_TOKEN = entered
-                    print("Token salvo! Iniciando...\n")
+                    print(t("token_saved_starting") + "\n")
                 except Exception as e:
-                    print(f"Nao consegui salvar o token: {e}")
+                    print(t("token_save_failed", error=e))
 
     if not PREVIEW and not DISCORD_TOKEN:
-        print(
-            "Nenhum token encontrado.\n"
-            "Defina a variavel de ambiente DISCORD_TOKEN ou crie um arquivo\n"
-            "token.txt (na mesma pasta) com o seu token dentro.\n"
-            "\n"
-            "Dica: rode com --preview para testar sem token.\n"
-        )
+        print(t("token_not_found"))
         sys.exit(1)
 
     try:
