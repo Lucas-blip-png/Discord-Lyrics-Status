@@ -3,6 +3,7 @@ import asyncio
 import os
 import sys
 import re
+import threading
 import time
 
 import requests
@@ -68,6 +69,11 @@ DISCORD_TOKEN = load_token()
 
 # Modo preview: mostra a letra no terminal sem tocar no Discord.
 PREVIEW = False
+
+# Controles usados pelo tray app (tray.py): pausar limpa o status sem sair;
+# STOP_EVENT encerra o main_loop (que limpa o status no finally).
+PAUSED = False
+STOP_EVENT = threading.Event()
 
 # True so quando ha um terminal real. Fica False ao rodar via pythonw
 # (escondido) ou com a saida redirecionada -> evita lixo no terminal e o
@@ -314,7 +320,15 @@ async def main_loop(min_interval):
         print(t("detecting_music"))
 
     try:
-        while True:
+        while not STOP_EVENT.is_set():
+            if PAUSED:
+                if sent_text is not None:
+                    update_discord_status(None)
+                    sent_text = None
+                current_line = None
+                await asyncio.sleep(0.5)
+                continue
+
             info = await get_media_info()
             status = info.get("status")
             playing = status == PlaybackStatus.PLAYING
@@ -351,7 +365,13 @@ async def main_loop(min_interval):
                     clear_line_area()
                     render(info["title"], info["artist"], pos, current_line)
 
-                desired_text = f"\U0001f3b5 {current_line}" if current_line else None
+                # Fallback: sem letra (ou entre linhas) mostra musica - artista.
+                if current_line:
+                    desired_text = f"\U0001f3b5 {current_line}"
+                else:
+                    desired_text = trim(
+                        f"\U0001f3b5 {info['title']} - {info['artist']}", 100
+                    )
 
             # ---- limitador de frequencia ----
             # Atualiza o Discord no maximo 1x a cada `min_interval` segundos,

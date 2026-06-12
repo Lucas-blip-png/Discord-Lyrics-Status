@@ -62,7 +62,13 @@
     "saved_to": "All saved to: {path}",
     "secrets_warning": "This file holds your secrets - do NOT share it and do NOT push it to git.",
     "now_run": "Now just run:  python lyrics_spotify.py",
-    "setup_lang_prompt": "Language (en, pt, es, ...) [Enter = auto-detect]: "
+    "setup_lang_prompt": "Language (en, pt, es, ...) [Enter = auto-detect]: ",
+    "tray_pause": "Pause",
+    "tray_resume": "Resume",
+    "tray_quit": "Quit",
+    "tray_running": "Discord Lyrics: running",
+    "tray_paused": "Discord Lyrics: paused",
+    "tray_no_token": "No token saved - run configurar_token.bat first"
   },
   "pt": {
     "arg_desc": "Sincroniza a letra da musica que esta tocando com o seu status do Discord.",
@@ -127,6 +133,12 @@
     "saved_to": "Tudo salvo em: {path}",
     "secrets_warning": "Este arquivo guarda seus segredos - NAO compartilhe e NAO suba pro git.",
     "now_run": "Agora e so rodar:  python lyrics_spotify.py",
-    "setup_lang_prompt": "Idioma (en, pt, es, ...) [Enter = detectar automaticamente]: "
+    "setup_lang_prompt": "Idioma (en, pt, es, ...) [Enter = detectar automaticamente]: ",
+    "tray_pause": "Pausar",
+    "tray_resume": "Retomar",
+    "tray_quit": "Sair",
+    "tray_running": "Discord Lyrics: rodando",
+    "tray_paused": "Discord Lyrics: pausado",
+    "tray_no_token": "Nenhum token salvo - rode o configurar_token.bat antes"
   }
 }

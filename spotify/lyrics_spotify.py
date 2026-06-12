@@ -270,7 +270,11 @@ def main():
                         m, s = divmod(int(pos), 60)
                         print(f"\n{title} - {artist}  [{m:02d}:{s:02d}]")
                         print(f"  > {current_line or '...'}")
-                desired = f"\U0001f3b5 {current_line}" if current_line else None
+                # Fallback: sem letra (ou entre linhas) mostra musica - artista.
+                if current_line:
+                    desired = f"\U0001f3b5 {current_line}"
+                else:
+                    desired = (f"\U0001f3b5 {title} - {artist}")[:100]
 
             # limitador de frequencia (envia no maximo 1x a cada min_interval)
             if not args.preview and desired != sent_text and (now - last_sent) >= min_interval:

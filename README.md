@@ -152,6 +152,12 @@ Você tem duas opções:
 
 - **Abrir só quando quiser:** rode `python lyrics.py` (ou use `testar.bat` tirando
   o `--preview`).
+- **Com ícone na bandeja (mais fácil de controlar):** dois cliques em
+  **`iniciar_tray.bat`** — aparece um ícone perto do relógio com **Pausar/Sair**
+  (instala o necessário na 1ª vez).
+
+> 💡 Quando a música **não tem letra sincronizada**, o status mostra
+> "🎵 música – artista" em vez de ficar vazio.
 
 ### Ajustar a frequência de atualização
 
@@ -218,6 +224,7 @@ Para trocar manualmente: dois cliques em **`configurar_idioma.bat`** (ou
 | `instalar_autostart.bat` | Liga o início automático com o Windows (escondido) |
 | `desinstalar_autostart.bat` | Desliga o início automático |
 | `parar.bat` | Encerra o programa |
+| `iniciar_tray.bat` | Abre o app de bandeja (ícone com Pausar/Sair) |
 | `token.txt` | Onde seu token fica salvo (criado por você; **nunca** compartilhe) |
 
 ---
