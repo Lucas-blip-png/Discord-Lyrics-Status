@@ -10,4 +10,7 @@ object Prefs {
 
     fun interval(c: Context): Int = sp(c).getInt("interval", 5).coerceIn(2, 3600)
     fun setInterval(c: Context, v: Int) = sp(c).edit().putInt("interval", v.coerceIn(2, 3600)).apply()
+
+    fun bootStart(c: Context): Boolean = sp(c).getBoolean("bootStart", false)
+    fun setBootStart(c: Context, v: Boolean) = sp(c).edit().putBoolean("bootStart", v).apply()
 }

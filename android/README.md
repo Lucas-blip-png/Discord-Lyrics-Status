@@ -32,6 +32,17 @@ Não precisa de Android Studio — o **GitHub Actions** compila pra você:
 3. Toque em **"Salvar e iniciar"**. Toque uma música. 🎶
 4. Para parar: botão **Parar** (ou desligue o acesso a notificações).
 
+### Iniciar sozinho quando ligar o celular
+Marque **"Iniciar automaticamente quando ligar o celular"**. Aí ele sobe sozinho
+no boot, sem você abrir o app.
+
+> ⚠️ Em vários celulares (Xiaomi/MIUI, Samsung, Oppo, etc.) o Android bloqueia
+> apps de iniciarem no boot até você liberar manualmente. Se não subir sozinho:
+> - Ative **"Autostart" / "Inicialização automática"** para o app nas configurações.
+> - Tire o app da **otimização de bateria** (deixe "sem restrições").
+>
+> Se mesmo assim não subir após reiniciar, é só abrir o app uma vez.
+
 ## Status / o que falta
 - [ ] Testar num aparelho real e ajustar (detecção de mídia varia por fabricante).
 - [ ] Tratar melhor múltiplos players tocando ao mesmo tempo.

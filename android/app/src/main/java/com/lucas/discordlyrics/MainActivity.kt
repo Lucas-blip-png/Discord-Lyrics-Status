@@ -5,6 +5,7 @@ import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
 import android.widget.Button
+import android.widget.CheckBox
 import android.widget.EditText
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
@@ -42,6 +43,12 @@ class MainActivity : AppCompatActivity() {
         findViewById<Button>(R.id.stop).setOnClickListener {
             LyricsService.stop(this)
             Toast.makeText(this, "Parado", Toast.LENGTH_SHORT).show()
+        }
+
+        val boot = findViewById<CheckBox>(R.id.boot)
+        boot.isChecked = Prefs.bootStart(this)
+        boot.setOnCheckedChangeListener { _, checked ->
+            Prefs.setBootStart(this, checked)
         }
     }
 }
