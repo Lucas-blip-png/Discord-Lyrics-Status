@@ -27,7 +27,7 @@ jobs:
           pip install -r requirements.txt pyinstaller
 
       - name: Compilar o .exe
-        run: pyinstaller --onefile --console --name DiscordLyricsStatus --collect-all winrt --collect-all syncedlyrics --noconfirm lyrics.py
+        run: pyinstaller --onefile --console --name DiscordLyricsStatus --collect-all winrt --collect-all syncedlyrics --noconfirm app.py
 
       - name: Subir como artifact (download manual)
         uses: actions/upload-artifact@v4

@@ -29,6 +29,18 @@ Foi feito pra ser **fácil**: a maior parte é só dar **dois cliques** em arqui
 
 ---
 
+## ⬇️ Jeito mais fácil (sem Python): baixar o `.exe`
+
+Baixe o **`DiscordLyricsStatus.exe`** na aba **[Releases](../../releases)** e dê
+**dois cliques**. Abre um **menu** que faz tudo: colar o token, definir intervalo,
+idioma, ligar o início automático com o Windows, iniciar e testar.
+**Não precisa de Python nem dos `.bat`.**
+
+> O resto deste README é pra quem prefere rodar pelo **código-fonte** (com Python)
+> ou contribuir.
+
+---
+
 ## ⚡ Resumo rápido (pra quem tem pressa)
 
 1. Instale o **Python** (marcando *Add to PATH*).
