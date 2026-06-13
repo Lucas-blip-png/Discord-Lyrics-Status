@@ -84,6 +84,45 @@ def parse_lrc(lrc_string):
     return sorted(lyrics, key=lambda x: x[0])
 
 
+_NOISE = re.compile(
+    r"(official|videoclip|video|audio|lyric|lyrics|letra|legendado|legenda|"
+    r"sub\s*espanol|tradu[cç][aã]o|m/?v|\bhd\b|\bhq\b|\b4k\b|\b8k\b|"
+    r"visuali[sz]er|explicit|clean\s*version|remaster(ed)?|color\s*coded|"
+    r"nightcore|slowed|reverb|sped\s*up|extended\s*mix|free\s*download|"
+    r"download|prod\.?)",
+    re.IGNORECASE,
+)
+
+
+def _strip_noise_brackets(text):
+    for pat in (r"\([^()]*\)", r"\[[^\[\]]*\]", r"【[^】]*】"):
+        text = re.sub(pat, lambda m: "" if _NOISE.search(m.group(0)) else m.group(0), text)
+    return text
+
+
+def clean_for_search(title, artist):
+    """Limpa titulo/artista e devolve (titulo, artista, busca)."""
+    title = _strip_noise_brackets(title or "")
+    title = re.sub(r"\b(feat\.?|ft\.?|featuring)\b.*$", "", title, flags=re.IGNORECASE)
+    title = re.sub(r"\s*\|.*$", "", title)
+    title = re.sub(
+        r"\s*\b(official|music|lyric|lyrics|video|audio|mv|visualizer|hd|hq|4k)\b"
+        r"(\s+\b(official|music|lyric|lyrics|video|audio|mv|visualizer|hd|hq|4k)\b)*\s*$",
+        "", title, flags=re.IGNORECASE,
+    )
+    artist = re.sub(r"\s*-\s*topic\s*$", "", artist or "", flags=re.IGNORECASE)
+    artist = re.sub(r"\b(vevo|official)\b", "", artist, flags=re.IGNORECASE).strip()
+    title = re.sub(r"\s+", " ", title).strip(" -–—\t'\"")
+    if " - " in title:
+        left, right = title.split(" - ", 1)
+        left, right = left.strip(), right.strip()
+        if left and right:
+            artist, title = left, right
+    title = title.strip(" -–—'\"")
+    artist = re.sub(r"\s+", " ", artist).strip(" -–—'\"")
+    return title, artist, (title + " " + artist).strip()
+
+
 # ---------------------------------------------------------------------------
 # Spotify
 # ---------------------------------------------------------------------------
@@ -213,6 +252,8 @@ def main():
     current_song = None
     lyrics = []
     current_line = None
+    disp_title = ""
+    disp_artist = ""
     sent_text = None
     last_sent = 0.0
 
@@ -253,7 +294,8 @@ def main():
                 if song_id != current_song:
                     current_song = song_id
                     current_line = None
-                    lrc = syncedlyrics.search(song_id)
+                    disp_title, disp_artist, query = clean_for_search(title, artist)
+                    lrc = syncedlyrics.search(query)
                     lyrics = parse_lrc(lrc) if lrc else []
 
                 active = None
@@ -273,8 +315,10 @@ def main():
                 # Fallback: sem letra (ou entre linhas) mostra musica - artista.
                 if current_line:
                     desired = f"\U0001f3b5 {current_line}"
+                elif disp_artist:
+                    desired = (f"\U0001f3b5 {disp_title} - {disp_artist}")[:100]
                 else:
-                    desired = (f"\U0001f3b5 {title} - {artist}")[:100]
+                    desired = (f"\U0001f3b5 {disp_title or title}")[:100]
 
             # limitador de frequencia (envia no maximo 1x a cada min_interval)
             if not args.preview and desired != sent_text and (now - last_sent) >= min_interval:

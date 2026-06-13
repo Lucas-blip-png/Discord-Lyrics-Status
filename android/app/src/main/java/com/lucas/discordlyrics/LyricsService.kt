@@ -76,7 +76,8 @@ class LyricsService : Service() {
                     desired = if (!active.isNullOrBlank()) {
                         "🎵 $active"
                     } else {
-                        ("🎵 $title - $artist").take(100)
+                        val (dt, da) = Net.clean(title, artist)
+                        (if (da.isNotBlank()) "🎵 $dt - $da" else "🎵 $dt").take(100)
                     }
                 }
             } catch (e: SecurityException) {

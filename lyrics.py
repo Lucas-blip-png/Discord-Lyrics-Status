@@ -221,6 +221,55 @@ def parse_lrc(lrc_string):
 
 
 # ---------------------------------------------------------------------------
+# Limpeza do titulo (melhora a busca da letra, ex.: YouTube)
+# ---------------------------------------------------------------------------
+_NOISE = re.compile(
+    r"(official|videoclip|video|audio|lyric|lyrics|letra|legendado|legenda|"
+    r"sub\s*espanol|tradu[cç][aã]o|m/?v|\bhd\b|\bhq\b|\b4k\b|\b8k\b|"
+    r"visuali[sz]er|explicit|clean\s*version|remaster(ed)?|color\s*coded|"
+    r"nightcore|slowed|reverb|sped\s*up|extended\s*mix|free\s*download|"
+    r"download|prod\.?)",
+    re.IGNORECASE,
+)
+
+
+def _strip_noise_brackets(text):
+    for pat in (r"\([^()]*\)", r"\[[^\[\]]*\]", r"【[^】]*】"):
+        text = re.sub(pat, lambda m: "" if _NOISE.search(m.group(0)) else m.group(0), text)
+    return text
+
+
+def _clean_artist(a):
+    a = re.sub(r"\s*-\s*topic\s*$", "", a, flags=re.IGNORECASE)
+    a = re.sub(r"\bvevo\b", "", a, flags=re.IGNORECASE)
+    a = re.sub(r"\bofficial\b", "", a, flags=re.IGNORECASE)
+    return re.sub(r"\s+", " ", a).strip()
+
+
+def clean_for_search(title, artist):
+    """Limpa titulo/artista (YouTube etc.) e devolve (titulo, artista, busca)."""
+    title = _strip_noise_brackets(title or "")
+    title = re.sub(r"\b(feat\.?|ft\.?|featuring)\b.*$", "", title, flags=re.IGNORECASE)
+    title = re.sub(r"\s*\|.*$", "", title)
+    title = re.sub(
+        r"\s*\b(official|music|lyric|lyrics|video|audio|mv|visualizer|hd|hq|4k)\b"
+        r"(\s+\b(official|music|lyric|lyrics|video|audio|mv|visualizer|hd|hq|4k)\b)*\s*$",
+        "", title, flags=re.IGNORECASE,
+    )
+    artist = _clean_artist(artist or "")
+    title = re.sub(r"\s+", " ", title).strip(" -–—\t'\"")
+    # YouTube costuma ser "Artista - Musica": separa e usa isso
+    if " - " in title:
+        left, right = title.split(" - ", 1)
+        left, right = left.strip(), right.strip()
+        if left and right:
+            artist, title = left, right
+    title = title.strip(" -–—'\"")
+    artist = artist.strip(" -–—'\"")
+    return title, artist, (title + " " + artist).strip()
+
+
+# ---------------------------------------------------------------------------
 # Discord
 # ---------------------------------------------------------------------------
 _SETTINGS_URL = "https://discord.com/api/v9/users/@me/settings"
@@ -306,6 +355,8 @@ async def main_loop(min_interval):
     current_song = None
     current_lyrics = []
     current_line = None      # ultima linha mostrada no terminal
+    disp_title = ""          # titulo/artista ja limpos (para o fallback)
+    disp_artist = ""
 
     desired_text = None      # status que queremos no Discord
     sent_text = None         # ultimo status realmente enviado
@@ -344,7 +395,10 @@ async def main_loop(min_interval):
                     current_song = song_id
                     current_line = None
 
-                    lrc = await asyncio.to_thread(syncedlyrics.search, song_id)
+                    disp_title, disp_artist, query = clean_for_search(
+                        info["title"], info["artist"]
+                    )
+                    lrc = await asyncio.to_thread(syncedlyrics.search, query)
                     current_lyrics = parse_lrc(lrc) if lrc else []
 
                 pos = info["position"]
@@ -368,10 +422,10 @@ async def main_loop(min_interval):
                 # Fallback: sem letra (ou entre linhas) mostra musica - artista.
                 if current_line:
                     desired_text = f"\U0001f3b5 {current_line}"
+                elif disp_artist:
+                    desired_text = trim(f"\U0001f3b5 {disp_title} - {disp_artist}", 100)
                 else:
-                    desired_text = trim(
-                        f"\U0001f3b5 {info['title']} - {info['artist']}", 100
-                    )
+                    desired_text = trim(f"\U0001f3b5 {disp_title or info['title']}", 100)
 
             # ---- limitador de frequencia ----
             # Atualiza o Discord no maximo 1x a cada `min_interval` segundos,
